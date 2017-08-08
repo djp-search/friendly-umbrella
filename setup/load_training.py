@@ -1,24 +1,48 @@
 from datetime import datetime
 from elasticsearch import Elasticsearch
-#es = Elasticsearch()
+from json import loads
+
+######
+# file:    load_training.py
+# date:    20170808 
+# status:  draft
+# version: 0.1
+# authors: djptek
+# purpose: index multiple documents to elastic via python api
+######
+ 
+# set to your elastic host (in this case VM)
 es = Elasticsearch([
     {'host': '192.168.56.101'}
 ])
 
-doc = {
-    'author': 'kimchy',
-    'text': 'Elasticsearch: cool. bonsai cool.',
-    'timestamp': datetime.now(),
-}
-res = es.index(index="test-index", doc_type='tweet', id=1, body=doc)
-print(res['created'])
+training_index = 'training'
+training_type = 'example'
+training_datafile = '../data/training_docs.json'
 
-res = es.get(index="test-index", doc_type='tweet', id=1)
-print(res['_source'])
+# delete the current 'training' index
+res = es.indices.delete(index=training_index, ignore=[400, 404])
 
-es.indices.refresh(index="test-index")
+# check delete OK likewise accept if Index did not exist
+if (res.keys()[0] == 'acknowledged' or 
+      ('error' in res.keys() and 
+       res['error']['root_cause'][0]['type'] == u'index_not_found_exception')):
+   print('populating index ['+training_index+']')
 
-res = es.search(index="test-index", body={"query": {"match_all": {}}})
-print("Got %d Hits:" % res['hits']['total'])
-for hit in res['hits']['hits']:
-    print("%(timestamp)s %(author)s: %(text)s" % hit["_source"])
+   # open the example docs datafile
+   training_docs = open(training_datafile,'r')
+
+   # iterate through the file creating example documents in the index
+   for training_doc in training_docs:
+      doc = loads(training_doc)   
+      res = es.index(index=training_index, doc_type=training_type, body=doc)
+      print('doc ['+doc['doc']['name']+'] class ['+doc['doc']['class']+
+        '] indexed : id ['+res['_id']+']')
+
+   # close file on disk
+   training_docs.close()
+    
+else:
+   # flag issue with the index
+   print('issue deleting ['+training_index+'] result ['+str(res)+']')
+
