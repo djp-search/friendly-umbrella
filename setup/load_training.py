@@ -23,6 +23,11 @@ training_datafile = '../data/training_docs.json'
 # delete the current 'training' index
 res = es.indices.delete(index=training_index, ignore=[400, 404])
 
+# (re)create the 'training' index with stopwords enabled
+body = ' { "settings": { "analysis": { "analyzer": { "my_english": { "type":      "english", "stopwords": "_english_" } } } } }'
+
+res = es.indices.create(index=training_index, ignore=[400, 404])
+
 # check delete OK likewise accept if Index did not exist
 if (res.keys()[0] == 'acknowledged' or 
       ('error' in res.keys() and 

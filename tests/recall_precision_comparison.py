@@ -1,6 +1,7 @@
 from datetime import datetime
 from elasticsearch import Elasticsearch
 from json import loads		
+from math import log
 
 ######
 # file:    recall_precision_comparison.py
@@ -28,6 +29,9 @@ es = Elasticsearch([
 ####
 import abc
 
+####
+# Factory modes for candidate classification methods
+#
 class AbstractClassifier(object):
     __metaclass__ = abc.ABCMeta
 
@@ -40,62 +44,122 @@ class AbstractClassifier(object):
         pass
 
 
+# Classify by Tag of highest weighted hit
 class FirstMatchClassifier(AbstractClassifier):
-    #def __init__(self, *args, **kwargs):
-        # Initialize Facebook OAuth
-        #...
 
     @staticmethod
     def tag(search_body):
-       # Tag of highest weighted hit
        res = es.search(index=training_index, body=search_body)
        if int(res['hits']['total']) > 0:
           return res['hits']['hits'][0]['_source']['doc']['tag']
        else:
           return no_tag
 
+# Sum weights on per tag basis and return highest 
 class AggregateWeightClassifier(AbstractClassifier):
-    #def __init__(self, *args, **kwargs):
-        ## Initialize Twitter OAuth
-        #...
 
     @staticmethod
     def tag(search_body):
-        # Sum weights on per tag basis and return highest 
-        return 'test_tag'
+       res = es.search(index=training_index, body=search_body)
+       if int(res['hits']['total']) > 0:
+          tag_scores = dict()
+          for hit in res['hits']['hits']:
+             if hit['_source']['doc']['tag'] not in tag_scores.keys():
+                 tag_scores[hit['_source']['doc']['tag']] = hit['_score']
+             else:
+                 tag_scores[hit['_source']['doc']['tag']] += hit['_score']
+          return sorted(tag_scores, key=tag_scores.__getitem__,reverse=True)[0]
+       else:
+          return no_tag
 
+# Sum squares of weights on per tag basis and return highest 
+class AggregateWeightSquaresClassifier(AbstractClassifier):
 
+    @staticmethod
+    def tag(search_body):
+       res = es.search(index=training_index, body=search_body)
+       if int(res['hits']['total']) > 0:
+          tag_scores = dict()
+          for hit in res['hits']['hits']:
+             if hit['_source']['doc']['tag'] not in tag_scores.keys():
+                 tag_scores[hit['_source']['doc']['tag']] = hit['_score'] ** 2
+             else:
+                 tag_scores[hit['_source']['doc']['tag']] += hit['_score'] ** 2
+          return sorted(tag_scores, key=tag_scores.__getitem__,reverse=True)[0]
+       else:
+          return no_tag
+
+# factory object 
 class ClassifierFactory(object):
-    tag_classes = {
+    classifier_modes = {
         'firstmatch': FirstMatchClassifier,
-        'aggregateweight': AggregateWeightClassifier
+        'aggregateweight': AggregateWeightClassifier,
+        'aggregateweightsquares': AggregateWeightSquaresClassifier
     }
 
     @staticmethod
     def get_tag_obj(name, search_body):
-       tag_class = ClassifierFactory.tag_classes.get(name.lower(), None)
-       if tag_class:
-          return tag_class.tag(search_body)
+       classifier_mode = ClassifierFactory.classifier_modes.get(name.lower(), None)
+       if classifier_mode:
+          return classifier_mode.tag(search_body)
        raise NotImplementedError('The requested classifier has not been '\
           'implemented')
 
-classifier_obj = ClassifierFactory()
+####
+# functions
+
+####
+def get_tag(classifier_mode,search_body):
+   return classifier_obj.get_tag_obj(classifier_mode, search_body)
+
+####
+def update_metrics(test_result,expected_result):
+   print "foo"
+
+####
+def display_summary(test_id,
+   classifier_mode,
+   short_description,
+   test_result,
+   expected_tag):
+   print "Test {} {} {}... Result [{}] Expected [{}]".format(
+      test_id,
+      classifier_mode,
+      short_description,
+      test_result,
+      expected_tag)
+
+####
+def test_run(test_id,
+   classifier_mode,
+   search_body,
+   expected_tag):
+
+   test_result = get_tag(classifier_mode,search_body)
+   update_metrics(test_result,expected_tag)
+   display_summary(test_id,
+      classifier_mode,
+      search_body['query']['match']['doc.description'][:12],
+      test_result,
+      expected_tag)
+
+####
+# main starts here
+
 
 # test results
 summary = {'true': {'positive': 0, 'negative': 0},
     'false': {'positive': 0, 'negative': 0}}
 
-for tag_class in classifier_obj.tag_classes.keys():
-   tests = open(test_datafile, 'r')
-   for test in tests:
+tests = open(test_datafile, 'r')
+for test in tests:
+   classifier_obj = ClassifierFactory()
+   for classifier_mode in classifier_obj.classifier_modes.keys():
       tl = loads(test)
-      print "Test {} {} {}... Result [{}] Expected [{}]".format(
-         tl['test']['id'],
-         tag_class,
-         tl['test']['search_body']['query']['match']['doc.description'][:12],
-         classifier_obj.get_tag_obj(tag_class, 
-            tl['test']['search_body']),
+      test_run(tl['test']['id'],
+         classifier_mode,
+         tl['test']['search_body'],
          tl['expected_result']['tag'])
-   
-   tests.close()
+
+tests.close()
    
