@@ -30,7 +30,7 @@ es = Elasticsearch([
 import abc
 
 ####
-# Factory modes for candidate classification methods
+# Factory classes for candidate classification modes
 #
 class AbstractClassifier(object):
     __metaclass__ = abc.ABCMeta
@@ -106,15 +106,56 @@ class ClassifierFactory(object):
           'implemented')
 
 ####
+# Dictionary to encapsulate metrics
+metrics = dict()
+tags = []
+
+####
 # functions
+
+####
+### Calculate precision, divide by zero safe
+def precision (tp, fp, fn):
+    if tp + fp > 0:
+        return str(tp/float(tp+fp))
+    elif fn > 0:
+        return '0.0'
+    else:
+            return '1.0'
+####
+### Calculate recall, divide by zero safe
+def recall (tp, fp, fn):
+    if tp + fn > 0:
+        return str(tp/float(tp+fn))
+    elif fp > 0:
+        return '0.0'
+    else:
+            return '1.0'
 
 ####
 def get_tag(classifier_mode,search_body):
    return classifier_obj.get_tag_obj(classifier_mode, search_body)
 
 ####
-def update_metrics(test_result,expected_result):
-   print "foo"
+def initialize_metrics():
+   res = es.search(index=training_index,body='{ "query": { "match_all": {} } }')
+   for hit in res['hits']['hits']:
+      if hit['_source']['doc']['tag'] not in tags:
+         tags.append(hit['_source']['doc']['tag'])
+   for classifier_mode in classifier_obj.classifier_modes.keys():
+      if classifier_mode not in metrics:
+         metrics[classifier_mode] = {
+            'false': {'positive': 0, 'negative': 0}, 
+            'true': {'positive': 0, 'negative': 0}}
+
+####
+def update_metrics(classifier_mode,test_result,expected_result):
+   if test_result == expected_result:
+      metrics[classifier_mode]['true']['positive'] += 1
+      metrics[classifier_mode]['true']['negative'] += (len(tags)-1)
+   else:
+      metrics[classifier_mode]['false']['negative'] += 1
+      metrics[classifier_mode]['false']['positive'] += (len(tags)-1)
 
 ####
 def display_summary(test_id,
@@ -136,7 +177,7 @@ def test_run(test_id,
    expected_tag):
 
    test_result = get_tag(classifier_mode,search_body)
-   update_metrics(test_result,expected_tag)
+   update_metrics(classifier_mode,test_result,expected_tag)
    display_summary(test_id,
       classifier_mode,
       search_body['query']['match']['doc.description'][:12],
@@ -144,16 +185,27 @@ def test_run(test_id,
       expected_tag)
 
 ####
+def display_recall_precision():
+   for mode in metrics:
+       print "Mode {} Precision {} Recall {}".format(
+          mode,
+          precision(metrics[mode]['true']['positive'],
+             metrics[mode]['false']['positive'],
+             metrics[mode]['false']['negative']),
+          recall(metrics[mode]['true']['positive'],
+             metrics[mode]['false']['positive'],
+             metrics[mode]['false']['negative']))
+
+####
 # main starts here
 
 
 # test results
-summary = {'true': {'positive': 0, 'negative': 0},
-    'false': {'positive': 0, 'negative': 0}}
+classifier_obj = ClassifierFactory()
+initialize_metrics()
 
 tests = open(test_datafile, 'r')
 for test in tests:
-   classifier_obj = ClassifierFactory()
    for classifier_mode in classifier_obj.classifier_modes.keys():
       tl = loads(test)
       test_run(tl['test']['id'],
@@ -162,4 +214,6 @@ for test in tests:
          tl['expected_result']['tag'])
 
 tests.close()
+
+display_recall_precision()
    

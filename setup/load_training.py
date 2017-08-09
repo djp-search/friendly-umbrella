@@ -24,9 +24,11 @@ training_datafile = '../data/training_docs.json'
 res = es.indices.delete(index=training_index, ignore=[400, 404])
 
 # (re)create the 'training' index with stopwords enabled
-body = ' { "settings": { "analysis": { "analyzer": { "my_english": { "type":      "english", "stopwords": "_english_" } } } } }'
+#body = ' { "settings": { "analysis": { "analyzer": { "my_english": { "type":      "english", "stopwords": "_english_" } } } }, "mappings": {"example": {"properties": {"doc.description": {"type": "text" }, "doc.tag": {"type": "keyword"} } } } }'
+set_body = '{ "settings": { "analysis": { "analyzer": { "my_english": { "type": "english", "stopwords": "_english_" } } } } }'
 
-res = es.indices.create(index=training_index, ignore=[400, 404])
+res = es.indices.create(index=training_index, body=set_body, ignore=[400, 404])
+#res = es.indices.create(index=training_index, ignore=[400, 404])
 
 # check delete OK likewise accept if Index did not exist
 if (res.keys()[0] == 'acknowledged' or 
