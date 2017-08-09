@@ -27,7 +27,7 @@ res = es.indices.delete(index=training_index, ignore=[400, 404])
 if (res.keys()[0] == 'acknowledged' or 
       ('error' in res.keys() and 
        res['error']['root_cause'][0]['type'] == u'index_not_found_exception')):
-   print('populating index ['+training_index+']')
+   print 'populating index [{}]'.format(training_index)
 
    # open the example docs datafile
    training_docs = open(training_datafile,'r')
@@ -36,13 +36,14 @@ if (res.keys()[0] == 'acknowledged' or
    for training_doc in training_docs:
       doc = loads(training_doc)   
       res = es.index(index=training_index, doc_type=training_type, body=doc)
-      print('doc ['+doc['doc']['name']+'] class ['+doc['doc']['class']+
-        '] indexed : id ['+res['_id']+']')
+      print 'doc [{}] tag [{}] indexed : id [{}]'.format(
+         doc['doc']['name'],doc['doc']['tag'],res['_id'])
+
 
    # close file on disk
    training_docs.close()
     
 else:
    # flag issue with the index
-   print('issue deleting ['+training_index+'] result ['+str(res)+']')
+   print 'issue deleting [{}] result [{}]'.format(training_index,str(res))
 
