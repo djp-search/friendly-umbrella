@@ -26,11 +26,13 @@ recall_precision_comparison.py
 To load the training dataset:
 
 $ cd ./setup
+
 $ python load_training.py 
 
 To run the example tests (from top directory):
 
 $ cd ./tests
+
 $ python recall_precision_comparison.py
 
 
