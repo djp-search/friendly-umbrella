@@ -1,10 +1,11 @@
 # friendly-umbrella
 scripts to compare/rate classification strategies
 
-These scripts connect to an instance of eleastic (configured in the scripts)
-to index training documents and then run classification operations in a
-selection of modes for a fixed test set, generating recall/precision statistics 
-to compare performance and estimate solution value of each mode.
+These scripts connect via the python API to an instance of elasticsearch 
+(configured in the scripts) to index training documents and then run 
+classification operations in a selection of modes for a fixed test set, 
+generating recall/precision statistics to compare performance and 
+estimate solution value of each mode.
 
 Content:
 ./data:
