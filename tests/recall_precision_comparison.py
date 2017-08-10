@@ -2,6 +2,7 @@ from datetime import datetime
 from elasticsearch import Elasticsearch
 from json import loads		
 from math import log
+import random
 
 ######
 # file:    recall_precision_comparison.py
@@ -19,12 +20,22 @@ es = Elasticsearch([
 
 training_index = 'training'
 training_type = 'example'
-test_datafile = '../scenarios/test_01-03.json'
+test_datafile = '../scenarios/test_01-06.json'
 no_tag = "unclassified"
+random.seed(123)
 
 es = Elasticsearch([
     {'host': '192.168.56.101'}
 ])
+
+####
+# adapt to specific use case: assuming a CRM application
+# false positive => misunderstand the client issue
+# false negative => take longer to understand the client issue
+# true positive => correctly identify the client issue
+# true negative => correctly discard non relevant issues
+value = {'false': {'positive': -15, 'negative': -5},
+   'true': {'positive': 10, 'negative': 1}}
 
 ####
 import abc
@@ -63,7 +74,8 @@ class AggregateWeightClassifier(AbstractClassifier):
        res = es.search(index=training_index, body=search_body)
        if int(res['hits']['total']) > 0:
           tag_scores = dict()
-          for hit in res['hits']['hits']:
+          # slice top 5 (so that results deviate from firstmatch)
+          for hit in res['hits']['hits'][0:5]:
              if hit['_source']['doc']['tag'] not in tag_scores.keys():
                  tag_scores[hit['_source']['doc']['tag']] = hit['_score']
              else:
@@ -72,29 +84,27 @@ class AggregateWeightClassifier(AbstractClassifier):
        else:
           return no_tag
 
-# Sum squares of weights on per tag basis and return highest 
-class AggregateWeightSquaresClassifier(AbstractClassifier):
+# Purely Random Classification
+class RandomClassifier(AbstractClassifier):
 
     @staticmethod
     def tag(search_body):
-       res = es.search(index=training_index, body=search_body)
-       if int(res['hits']['total']) > 0:
-          tag_scores = dict()
-          for hit in res['hits']['hits']:
-             if hit['_source']['doc']['tag'] not in tag_scores.keys():
-                 tag_scores[hit['_source']['doc']['tag']] = hit['_score'] ** 2
-             else:
-                 tag_scores[hit['_source']['doc']['tag']] += hit['_score'] ** 2
-          return sorted(tag_scores, key=tag_scores.__getitem__,reverse=True)[0]
-       else:
-          return no_tag
+       return tags[random.randint(0,2)]
+
+# Fixed Tag Classification
+class FixedClassifier(AbstractClassifier):
+
+    @staticmethod
+    def tag(search_body):
+       return tags[0]
 
 # factory object 
 class ClassifierFactory(object):
     classifier_modes = {
         'firstmatch': FirstMatchClassifier,
         'aggregateweight': AggregateWeightClassifier,
-        'aggregateweightsquares': AggregateWeightSquaresClassifier
+        'random': RandomClassifier,
+        'fixed': FixedClassifier
     }
 
     @staticmethod
@@ -163,7 +173,7 @@ def display_summary(test_id,
    short_description,
    test_result,
    expected_tag):
-   print "Test {} {} {}... Result [{}] Expected [{}]".format(
+   print "\tTest {:2} {:16} {}... Result {:12} Expected {}".format(
       test_id,
       classifier_mode,
       short_description,
@@ -186,15 +196,27 @@ def test_run(test_id,
 
 ####
 def display_recall_precision():
+   print "Calculating recall + precision"
    for mode in metrics:
-       print "Mode {} Precision {} Recall {}".format(
+       print "\tMode {:19} Precision {:5.2f} Recall {:5.2f}".format(
           mode,
-          precision(metrics[mode]['true']['positive'],
+          float(precision(metrics[mode]['true']['positive'],
              metrics[mode]['false']['positive'],
-             metrics[mode]['false']['negative']),
-          recall(metrics[mode]['true']['positive'],
+             metrics[mode]['false']['negative'])),
+          float(recall(metrics[mode]['true']['positive'],
              metrics[mode]['false']['positive'],
-             metrics[mode]['false']['negative']))
+             metrics[mode]['false']['negative'])))
+
+####
+def display_value():
+   print "Estimating Value by mode"
+   for mode in metrics:
+       print "\tMode {:19} estimated Value {:6} minutes/operator/day".format(
+          mode,
+          metrics[mode]['true']['positive'] * value['true']['positive'] +
+          metrics[mode]['true']['negative'] * value['true']['negative'] +
+          metrics[mode]['false']['positive'] * value['false']['positive'] +
+          metrics[mode]['false']['negative'] * value['false']['negative'] )
 
 ####
 # main starts here
@@ -204,6 +226,7 @@ def display_recall_precision():
 classifier_obj = ClassifierFactory()
 initialize_metrics()
 
+print "Running tests from {}".format(test_datafile)
 tests = open(test_datafile, 'r')
 for test in tests:
    for classifier_mode in classifier_obj.classifier_modes.keys():
@@ -216,4 +239,5 @@ for test in tests:
 tests.close()
 
 display_recall_precision()
+display_value()
    

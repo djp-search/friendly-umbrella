@@ -1,0 +1,35 @@
+Running tests from ../scenarios/test_01-06.json
+	Test 01 fixed            The Game Boy... Result animal       Expected mineral
+	Test 01 aggregateweight  The Game Boy... Result vegetable    Expected mineral
+	Test 01 random           The Game Boy... Result animal       Expected mineral
+	Test 01 firstmatch       The Game Boy... Result mineral      Expected mineral
+	Test 02 fixed            The unicorn ... Result animal       Expected animal
+	Test 02 aggregateweight  The unicorn ... Result animal       Expected animal
+	Test 02 random           The unicorn ... Result animal       Expected animal
+	Test 02 firstmatch       The unicorn ... Result animal       Expected animal
+	Test 03 fixed            The olive, k... Result animal       Expected vegetable
+	Test 03 aggregateweight  The olive, k... Result vegetable    Expected vegetable
+	Test 03 random           The olive, k... Result mineral      Expected vegetable
+	Test 03 firstmatch       The olive, k... Result vegetable    Expected vegetable
+	Test 04 fixed            A mobile pho... Result animal       Expected mineral
+	Test 04 aggregateweight  A mobile pho... Result mineral      Expected mineral
+	Test 04 random           A mobile pho... Result animal       Expected mineral
+	Test 04 firstmatch       A mobile pho... Result mineral      Expected mineral
+	Test 05 fixed            The donkey o... Result animal       Expected animal
+	Test 05 aggregateweight  The donkey o... Result animal       Expected animal
+	Test 05 random           The donkey o... Result vegetable    Expected animal
+	Test 05 firstmatch       The donkey o... Result mineral      Expected animal
+	Test 06 fixed            The radish (... Result animal       Expected vegetable
+	Test 06 aggregateweight  The radish (... Result vegetable    Expected vegetable
+	Test 06 random           The radish (... Result animal       Expected vegetable
+	Test 06 firstmatch       The radish (... Result mineral      Expected vegetable
+Calculating recall + precision
+	Mode random              Precision  0.09 Recall  0.17
+	Mode aggregateweight     Precision  0.71 Recall  0.83
+	Mode fixed               Precision  0.20 Recall  0.33
+	Mode firstmatch          Precision  0.50 Recall  0.67
+Estimating Value by mode
+	Mode random              estimated Value   -163 minutes/operator/day
+	Mode aggregateweight     estimated Value     25 minutes/operator/day
+	Mode fixed               estimated Value   -116 minutes/operator/day
+	Mode firstmatch          estimated Value    -22 minutes/operator/day
