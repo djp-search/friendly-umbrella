@@ -25,8 +25,15 @@ res = es.indices.delete(index=training_index, ignore=[400, 404])
 
 # (re)create the 'training' index with stopwords enabled
 #body = ' { "settings": { "analysis": { "analyzer": { "my_english": { "type":      "english", "stopwords": "_english_" } } } }, "mappings": {"example": {"properties": {"doc.description": {"type": "text" }, "doc.tag": {"type": "keyword"} } } } }'
-set_body = '{ "settings": { "analysis": { "analyzer": { "my_english": { "type": "english", "stopwords": "_english_" } } } } }'
-
+#set_body = '{ "settings": { "analysis": { "analyzer": { "my_english": { "type": "english", "stopwords": "_english_" } } } } }'
+   
+set_body = '{ "settings": { "analysis": { "filter": { "english_stop": { "type": "stop", '+
+   '"stopwords": "_english_" }, "english_stemmer": { "type": "stemmer", '+
+   '"language": "english" }, "english_possessive_stemmer": { "type": "stemmer", '+
+   '"language": "possessive_english" } }, "analyzer": { "english": { '+
+   '"tokenizer": "standard", "filter": [ "english_possessive_stemmer", "lowercase", '+
+   '"english_stop", "english_stemmer" ] } } } } }' 
+   
 res = es.indices.create(index=training_index, body=set_body, ignore=[400, 404])
 #res = es.indices.create(index=training_index, ignore=[400, 404])
 
