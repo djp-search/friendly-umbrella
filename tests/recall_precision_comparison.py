@@ -35,7 +35,7 @@ es = Elasticsearch([
 # true positive => correctly identify the client issue
 # true negative => correctly discard non relevant issues
 value = {'false': {'positive': -15, 'negative': -5},
-   'true': {'positive': 10, 'negative': 1}}
+   'true': {'positive': 15, 'negative': 5}}
 
 ####
 import abc
