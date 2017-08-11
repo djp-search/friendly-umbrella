@@ -35,4 +35,5 @@ $ cd ./tests
 
 $ python recall_precision_comparison.py
 
+Definitions in both training_docs.json and test_01-06.json are excerpts copied from Wikipedia under the terms of Wikipedia:Text of Creative Commons Attribution-ShareAlike 3.0 Unported License
 
