@@ -103,8 +103,8 @@ class ClassifierFactory(object):
     classifier_modes = {
         'firstmatch': FirstMatchClassifier,
         'aggregateweight': AggregateWeightClassifier,
-        'random': RandomClassifier,
-        'fixed': FixedClassifier
+        #'random': RandomClassifier,
+        #'fixed': FixedClassifier
     }
 
     @staticmethod
