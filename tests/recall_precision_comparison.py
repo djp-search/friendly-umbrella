@@ -21,7 +21,8 @@ es = Elasticsearch([
 training_index = 'training'
 training_type = 'example'
 test_datafile = '../scenarios/test_01-06.json'
-no_tag = "unclassified"
+no_tag = 'unclassified'
+all_tags = 'all_tags'
 random.seed(123)
 
 es = Elasticsearch([
@@ -74,8 +75,8 @@ class AggregateWeightClassifier(AbstractClassifier):
        res = es.search(index=training_index, body=search_body)
        if int(res['hits']['total']) > 0:
           tag_scores = dict()
-          # slice top 5 (so that results deviate from firstmatch)
-          for hit in res['hits']['hits'][0:5]:
+          # slice top 3 (so that results deviate from firstmatch)
+          for hit in res['hits']['hits'][0:3]:
              if hit['_source']['doc']['tag'] not in tag_scores.keys():
                  tag_scores[hit['_source']['doc']['tag']] = hit['_score']
              else:
@@ -103,8 +104,8 @@ class ClassifierFactory(object):
     classifier_modes = {
         'firstmatch': FirstMatchClassifier,
         'aggregateweight': AggregateWeightClassifier,
-        #'random': RandomClassifier,
-        #'fixed': FixedClassifier
+        'random': RandomClassifier,
+        'fixed': FixedClassifier
     }
 
     @staticmethod
@@ -117,8 +118,8 @@ class ClassifierFactory(object):
 
 ####
 # Dictionary to encapsulate metrics
-metrics = dict()
 tags = []
+metrics = dict()
 
 ####
 # functions
@@ -153,19 +154,25 @@ def initialize_metrics():
       if hit['_source']['doc']['tag'] not in tags:
          tags.append(hit['_source']['doc']['tag'])
    for classifier_mode in classifier_obj.classifier_modes.keys():
-      if classifier_mode not in metrics:
-         metrics[classifier_mode] = {
+      metrics[classifier_mode] = dict()
+      for tag in tags:
+         metrics[classifier_mode][tag] = {
             'false': {'positive': 0, 'negative': 0}, 
             'true': {'positive': 0, 'negative': 0}}
 
 ####
 def update_metrics(classifier_mode,test_result,expected_result):
    if test_result == expected_result:
-      metrics[classifier_mode]['true']['positive'] += 1
-      metrics[classifier_mode]['true']['negative'] += (len(tags)-1)
+      metrics[classifier_mode][test_result]['true']['positive'] += 1
+      for tag in tags:
+         if tag != test_result:
+            metrics[classifier_mode][tag]['true']['negative'] += 1
    else:
-      metrics[classifier_mode]['false']['negative'] += 1
-      metrics[classifier_mode]['false']['positive'] += (len(tags)-1)
+      metrics[classifier_mode][expected_result]['false']['negative'] += 1
+      metrics[classifier_mode][test_result]['false']['positive'] += 1
+      for tag in tags:
+         if tag not in [test_result,expected_result]:
+            metrics[classifier_mode][tag]['true']['negative'] += 1
 
 ####
 def display_summary(test_id,
@@ -196,16 +203,37 @@ def test_run(test_id,
 
 ####
 def display_recall_precision():
-   print "Calculating recall + precision"
+   print "Calculate/Collate recall + precision"
    for mode in metrics:
-       print "\tMode {:19} Precision {:5.2f} Recall {:5.2f}".format(
-          mode,
-          float(precision(metrics[mode]['true']['positive'],
-             metrics[mode]['false']['positive'],
-             metrics[mode]['false']['negative'])),
-          float(recall(metrics[mode]['true']['positive'],
-             metrics[mode]['false']['positive'],
-             metrics[mode]['false']['negative'])))
+      metrics[mode][all_tags] = {
+            'false': {'positive': 0, 'negative': 0},
+            'true': {'positive': 0, 'negative': 0}}
+      for tag in tags:
+         metrics[mode][tag].update({'precision':
+            float(precision(metrics[mode][tag]['true']['positive'],
+               metrics[mode][tag]['false']['positive'],
+               metrics[mode][tag]['false']['negative'])),
+            'recall':
+            float(recall(metrics[mode][tag]['true']['positive'],
+               metrics[mode][tag]['false']['positive'],
+               metrics[mode][tag]['false']['negative']))})
+         for tf in ['true','false']:
+            for pn in ['positive','negative']:
+               metrics[mode][all_tags][tf][pn] += metrics[mode][tag][tf][pn]
+         print "\tMode {:19} Tag {:12} Precision {:5.2f} Recall {:5.2f}".format(
+            mode,
+            tag,
+            metrics[mode][tag]['precision'],
+            metrics[mode][tag]['recall'])
+      print "\tMode {:19} Tag {:12} Precision {:5.2f} Recall {:5.2f}".format(
+         mode,
+         all_tags,
+         float(precision(metrics[mode][all_tags]['true']['positive'],
+            metrics[mode][all_tags]['false']['positive'],
+            metrics[mode][all_tags]['false']['negative'])),
+         float(recall(metrics[mode][all_tags]['true']['positive'],
+            metrics[mode][all_tags]['false']['positive'],
+            metrics[mode][all_tags]['false']['negative'])))
 
 ####
 def display_value():
@@ -239,5 +267,6 @@ for test in tests:
 tests.close()
 
 display_recall_precision()
-display_value()
+print metrics
+#display_value()
    
