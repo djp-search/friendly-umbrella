@@ -22,7 +22,7 @@ training_index = 'training'
 training_type = 'example'
 test_datafile = '../scenarios/test_01-06.json'
 no_tag = 'unclassified'
-all_tags = 'all_tags'
+mean_tags = 'mean_tags'
 random.seed(123)
 
 es = Elasticsearch([
@@ -103,9 +103,9 @@ class FixedClassifier(AbstractClassifier):
 class ClassifierFactory(object):
     classifier_modes = {
         'firstmatch': FirstMatchClassifier,
-        'aggregateweight': AggregateWeightClassifier,
-        'random': RandomClassifier,
-        'fixed': FixedClassifier
+        #'aggregateweight': AggregateWeightClassifier,
+        #'random': RandomClassifier,
+        #'fixed': FixedClassifier
     }
 
     @staticmethod
@@ -120,6 +120,7 @@ class ClassifierFactory(object):
 # Dictionary to encapsulate metrics
 tags = []
 metrics = dict()
+confusion_matrix = dict()
 
 ####
 # functions
@@ -132,7 +133,7 @@ def precision (tp, fp, fn):
     elif fn > 0:
         return '0.0'
     else:
-            return '1.0'
+        return '1.0'
 ####
 ### Calculate recall, divide by zero safe
 def recall (tp, fp, fn):
@@ -141,24 +142,53 @@ def recall (tp, fp, fn):
     elif fp > 0:
         return '0.0'
     else:
-            return '1.0'
+        return '1.0'
 
+####
+### Calculate precision, divide by zero safe
+def precision_cm (tp, observed_total):
+    if observed_total > 0:
+        return str(tp/float(observed_total))
+    elif fn > 0:
+        return '0.0'
+    else:
+        return '1.0'
+####
+### Calculate recall, divide by zero safe
+def recall_cm(tp, predicted_total):
+    if predicted_total > 0:
+        return str(tp/float(predicted_total))
+    elif fp > 0:
+        return '0.0'
+    else:
+        return '1.0'
+
+####
 ####
 def get_tag(classifier_mode,search_body):
    return classifier_obj.get_tag_obj(classifier_mode, search_body)
 
 ####
 def initialize_metrics():
+   # populate list of available tags
    res = es.search(index=training_index,body='{ "query": { "match_all": {} } }')
    for hit in res['hits']['hits']:
       if hit['_source']['doc']['tag'] not in tags:
          tags.append(hit['_source']['doc']['tag'])
+   # create a true/false positive/negative confusion matrix per classifier
    for classifier_mode in classifier_obj.classifier_modes.keys():
       metrics[classifier_mode] = dict()
       for tag in tags:
          metrics[classifier_mode][tag] = {
             'false': {'positive': 0, 'negative': 0}, 
             'true': {'positive': 0, 'negative': 0}}
+      # generate the full confusion matrix per classifer
+      confusion_matrix[classifier_mode] = {'predicted':{},'observed_total':{}}
+      for predicted in tags:
+         confusion_matrix[classifier_mode]['predicted'].update({predicted:{'observed':{},'total':0}})
+         confusion_matrix[classifier_mode]['observed_total'].update({predicted:0})
+         for observed in tags:
+            confusion_matrix[classifier_mode]['predicted'][predicted]['observed'].update({observed:0})
 
 ####
 def update_metrics(classifier_mode,test_result,expected_result):
@@ -173,6 +203,7 @@ def update_metrics(classifier_mode,test_result,expected_result):
       for tag in tags:
          if tag not in [test_result,expected_result]:
             metrics[classifier_mode][tag]['true']['negative'] += 1
+   confusion_matrix[classifier_mode]['predicted'][expected_result]['observed'][test_result] += 1
 
 ####
 def display_summary(test_id,
@@ -180,7 +211,7 @@ def display_summary(test_id,
    short_description,
    test_result,
    expected_tag):
-   print "\tTest {:2} {:16} {}... Result {:12} Expected {}".format(
+   print "Test {:2} {:16} {}... Result {:12} Expected {}".format(
       test_id,
       classifier_mode,
       short_description,
@@ -203,11 +234,9 @@ def test_run(test_id,
 
 ####
 def display_recall_precision():
-   print "Calculate/Collate recall + precision"
+   print "\nCalculate/Collate recall + precision"
    for mode in metrics:
-      metrics[mode][all_tags] = {
-            'false': {'positive': 0, 'negative': 0},
-            'true': {'positive': 0, 'negative': 0}}
+      metrics[mode][mean_tags] = {'sum':{'precision':0,'recall':0},'mean':{'precision':0,'recall':0},'count':len(tags)}
       for tag in tags:
          metrics[mode][tag].update({'precision':
             float(precision(metrics[mode][tag]['true']['positive'],
@@ -217,29 +246,60 @@ def display_recall_precision():
             float(recall(metrics[mode][tag]['true']['positive'],
                metrics[mode][tag]['false']['positive'],
                metrics[mode][tag]['false']['negative']))})
-         for tf in ['true','false']:
-            for pn in ['positive','negative']:
-               metrics[mode][all_tags][tf][pn] += metrics[mode][tag][tf][pn]
-         print "\tMode {:19} Tag {:12} Precision {:5.2f} Recall {:5.2f}".format(
+         for key in 'precision','recall':
+            metrics[mode][mean_tags]['sum'][key] += metrics[mode][tag][key]
+         print "Mode {:19} Tag {:12} Precision {:5.2f} Recall {:5.2f}".format(
             mode,
             tag,
             metrics[mode][tag]['precision'],
             metrics[mode][tag]['recall'])
-      print "\tMode {:19} Tag {:12} Precision {:5.2f} Recall {:5.2f}".format(
-         mode,
-         all_tags,
-         float(precision(metrics[mode][all_tags]['true']['positive'],
-            metrics[mode][all_tags]['false']['positive'],
-            metrics[mode][all_tags]['false']['negative'])),
-         float(recall(metrics[mode][all_tags]['true']['positive'],
-            metrics[mode][all_tags]['false']['positive'],
-            metrics[mode][all_tags]['false']['negative'])))
+      for key in 'precision','recall':
+         metrics[mode][mean_tags]['mean'][key] += metrics[mode][mean_tags]['sum'][key]/metrics[mode][mean_tags]['count']
+      print "Mode {:19} Tag {:12} Precision {:5.2f} Recall {:5.2f}".format(
+            mode,
+            "Mean of all",
+            metrics[mode][mean_tags]['mean']['precision'],
+            metrics[mode][mean_tags]['mean']['recall']) 
+      
+      # populate the full mode confusion matrix
+      for predicted in tags:
+         for observed in tags:
+            confusion_matrix[mode]['predicted'][predicted]['total'] += \
+               confusion_matrix[mode]['predicted'][predicted]['observed'][observed]
+            confusion_matrix[mode]['observed_total'][predicted] += \
+               confusion_matrix[mode]['predicted'][observed]['observed'][predicted]
+      
+
+####
+
+def display_confusion_matrix():
+   print "\nGenerating Confusion Matrices"
+   for mode in metrics:
+      col_headers = "{:16}".format(mode)
+      for tag in tags:
+         col_headers += "obs:{:12}".format(tag)
+      print col_headers
+      for predicted in tags:
+         row = "pred:{:11}".format(predicted)
+         for observed in tags:
+            row += "{:16}".format(confusion_matrix[mode]['predicted'][predicted]['observed'][observed])
+         row += "  tot:{:10}:{}".format(predicted,confusion_matrix[mode]['predicted'][predicted]['total'])
+         print row
+      total_obs = "{:16}".format("")
+      for observed in tags:
+         total_obs += "tot:{:8}:{:2} ".format(observed,confusion_matrix[mode]['observed_total'][observed])
+      print total_obs
+      for tag in tags:
+         print "{:10} Precision {:5.2f} Recall {:5.2f}".format(tag,
+            float(precision_cm(confusion_matrix[mode]['predicted'][tag]['observed'][tag],confusion_matrix[mode]['observed_total'][tag])),
+            float(recall_cm(confusion_matrix[mode]['predicted'][tag]['observed'][tag],confusion_matrix[mode]['predicted'][tag]['total'])))
+
 
 ####
 def display_value():
-   print "Estimating Value by mode"
+   print "\nEstimating Value by mode"
    for mode in metrics:
-       print "\tMode {:19} estimated Value {:6} minutes/operator/day".format(
+       print "Mode {:19} estimated Value {:6} minutes/operator/day".format(
           mode,
           metrics[mode]['true']['positive'] * value['true']['positive'] +
           metrics[mode]['true']['negative'] * value['true']['negative'] +
@@ -267,6 +327,7 @@ for test in tests:
 tests.close()
 
 display_recall_precision()
+display_confusion_matrix()
 print metrics
-#display_value()
+display_value()
    
