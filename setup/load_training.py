@@ -23,6 +23,7 @@ training_datafile = '../data/training_docs.json'
 # delete the current 'training' index
 res = es.indices.delete(index=training_index, ignore=[400, 404])
  
+# DO NOT USE THESE IN THE LAB, WORKS TOO WELL
 set_body = ''' { "settings": {
     "analysis": { 
         "filter": { 
@@ -55,8 +56,8 @@ set_body = ''' { "settings": {
   }
 }'''
    
-res = es.indices.create(index=training_index, body=set_body, ignore=[400, 404])
-#res = es.indices.create(index=training_index, ignore=[400, 404])
+#res = es.indices.create(index=training_index, body=set_body, ignore=[400, 404])
+res = es.indices.create(index=training_index, ignore=[400, 404])
 
 # check delete OK likewise accept if Index did not exist
 if (res.keys()[0] == 'acknowledged' or 
