@@ -20,43 +20,9 @@ training_index = 'training'
 training_type = 'example'
 training_datafile = '../data/training_docs.json'
 
-# delete the current 'training' index
-res = es.indices.delete(index=training_index, ignore=[400, 404])
+# delete ALL indexes to ensure starting afresh
+res = es.indices.delete(index="_all", ignore=[400, 404])
  
-# DO NOT USE THESE IN THE LAB, WORKS TOO WELL
-set_body = ''' { "settings": {
-    "analysis": { 
-        "filter": { 
-          "english_stop": { 
-            "type": "stop", 
-            "stopwords": "_english_" 
-          }, 
-          "english_stemmer": { 
-            "type":  "stemmer", 
-            "language": "english" 
-          }, 
-          "english_possessive_stemmer": {
-            "type": "stemmer", 
-            "language": "possessive_english" 
-          } 
-        }, 
-        "analyzer": {
-          "english": { 
-            "tokenizer": "standard", 
-            "filter": [ 
-              "english_possessive_stemmer", 
-              "lowercase", 
-              "english_stop", 
-              "english_stemmer" 
-            ]
-          } 
-        } 
-      } 
-    } 
-  }
-}'''
-   
-#res = es.indices.create(index=training_index, body=set_body, ignore=[400, 404])
 res = es.indices.create(index=training_index, ignore=[400, 404])
 
 # check delete OK likewise accept if Index did not exist

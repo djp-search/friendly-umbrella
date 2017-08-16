@@ -65,7 +65,6 @@ class FirstMatchClassifier(AbstractClassifier):
 
 # Sum weights on per tag basis and return highest
 
-
 class AggregateWeightClassifier(AbstractClassifier):
 
     @staticmethod
@@ -73,8 +72,30 @@ class AggregateWeightClassifier(AbstractClassifier):
         res = es.search(index=training_index, body=search_body)
         if int(res['hits']['total']) > 0:
             tag_scores = dict()
-            # slice top 5 (so that results deviate from firstmatch)
-            for hit in res['hits']['hits'][0:5]:
+            for hit in res['hits']['hits']:
+                if hit['_source']['doc']['tag'] not in tag_scores.keys():
+                    tag_scores[hit['_source']['doc']['tag']] = hit['_score']
+                else:
+                    tag_scores[hit['_source']['doc']['tag']] += hit['_score']
+            return sorted(
+                tag_scores,
+                key=tag_scores.__getitem__,
+                reverse=True)[0]
+        else:
+            return no_tag
+
+# Ignore top hit then Sum weights on per tag basis and return highest
+
+class SkipFirstWeightClassifier(AbstractClassifier):
+
+    @staticmethod
+    def tag(search_body):
+        res = es.search(index=training_index, body=search_body)
+        if int(res['hits']['total']) > 0:
+            tag_scores = dict()
+            # slice hits 2-6 ignoring best match
+            # so that results deviate from firstmatch
+            for hit in res['hits']['hits'][1:5]:
                 if hit['_source']['doc']['tag'] not in tag_scores.keys():
                     tag_scores[hit['_source']['doc']['tag']] = hit['_score']
                 else:
@@ -110,9 +131,10 @@ class FixedClassifier(AbstractClassifier):
 class ClassifierFactory(object):
     classifier_modes = {
         'firstmatch': FirstMatchClassifier,
-        'aggregateweight': AggregateWeightClassifier,
+        #'aggregateweight': AggregateWeightClassifier,
+        'skipfirstweight': SkipFirstWeightClassifier,
+        #'fixed': FixedClassifier,
         #'random': RandomClassifier,
-        #'fixed': FixedClassifier
     }
 
     @staticmethod
