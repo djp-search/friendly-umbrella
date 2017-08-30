@@ -26,7 +26,7 @@ res = es.indices.delete(index="_all", ignore=[400, 404])
 res = es.indices.create(index=training_index, ignore=[400, 404])
 
 # check delete OK likewise accept if Index did not exist
-if (res.keys()[0] == 'acknowledged' or 
+if ('acknowledged' in res.keys() or 
       ('error' in res.keys() and 
        res['error']['root_cause'][0]['type'] == u'index_not_found_exception')):
    print 'populating index [{}]'.format(training_index)
