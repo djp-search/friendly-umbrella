@@ -1,35 +1,79 @@
 Running tests from ../scenarios/test_01-06.json
-	Test 01 fixed            The Game Boy... Result animal       Expected mineral
-	Test 01 aggregateweight  The Game Boy... Result vegetable    Expected mineral
-	Test 01 random           The Game Boy... Result animal       Expected mineral
-	Test 01 firstmatch       The Game Boy... Result mineral      Expected mineral
-	Test 02 fixed            The unicorn ... Result animal       Expected animal
-	Test 02 aggregateweight  The unicorn ... Result animal       Expected animal
-	Test 02 random           The unicorn ... Result animal       Expected animal
-	Test 02 firstmatch       The unicorn ... Result animal       Expected animal
-	Test 03 fixed            The olive, k... Result animal       Expected vegetable
-	Test 03 aggregateweight  The olive, k... Result vegetable    Expected vegetable
-	Test 03 random           The olive, k... Result mineral      Expected vegetable
-	Test 03 firstmatch       The olive, k... Result vegetable    Expected vegetable
-	Test 04 fixed            A mobile pho... Result animal       Expected mineral
-	Test 04 aggregateweight  A mobile pho... Result mineral      Expected mineral
-	Test 04 random           A mobile pho... Result animal       Expected mineral
-	Test 04 firstmatch       A mobile pho... Result mineral      Expected mineral
-	Test 05 fixed            The donkey o... Result animal       Expected animal
-	Test 05 aggregateweight  The donkey o... Result animal       Expected animal
-	Test 05 random           The donkey o... Result vegetable    Expected animal
-	Test 05 firstmatch       The donkey o... Result mineral      Expected animal
-	Test 06 fixed            The radish (... Result animal       Expected vegetable
-	Test 06 aggregateweight  The radish (... Result vegetable    Expected vegetable
-	Test 06 random           The radish (... Result animal       Expected vegetable
-	Test 06 firstmatch       The radish (... Result mineral      Expected vegetable
-Calculating recall + precision
-	Mode random              Precision  0.09 Recall  0.17
-	Mode aggregateweight     Precision  0.71 Recall  0.83
-	Mode fixed               Precision  0.20 Recall  0.33
-	Mode firstmatch          Precision  0.50 Recall  0.67
+Test 01 random           A teacup is ... p:mineral      o:vegetable
+Test 01 aggregateweight  A teacup is ... p:mineral      o:vegetable
+Test 01 fixed            A teacup is ... p:mineral      o:vegetable
+Test 01 firstmatch       A teacup is ... p:mineral      o:vegetable
+Test 02 random           The unicorn ... p:animal       o:vegetable
+Test 02 aggregateweight  The unicorn ... p:animal       o:animal
+Test 02 fixed            The unicorn ... p:animal       o:vegetable
+Test 02 firstmatch       The unicorn ... p:animal       o:animal
+Test 03 random           The olive, k... p:vegetable    o:animal
+Test 03 aggregateweight  The olive, k... p:vegetable    o:vegetable
+Test 03 fixed            The olive, k... p:vegetable    o:vegetable
+Test 03 firstmatch       The olive, k... p:vegetable    o:mineral
+Test 04 random           A mobile pho... p:mineral      o:vegetable
+Test 04 aggregateweight  A mobile pho... p:mineral      o:mineral
+Test 04 fixed            A mobile pho... p:mineral      o:vegetable
+Test 04 firstmatch       A mobile pho... p:mineral      o:mineral
+Test 05 random           The donkey o... p:animal       o:mineral
+Test 05 aggregateweight  The donkey o... p:animal       o:animal
+Test 05 fixed            The donkey o... p:animal       o:vegetable
+Test 05 firstmatch       The donkey o... p:animal       o:animal
+Test 06 random           The radish (... p:vegetable    o:vegetable
+Test 06 aggregateweight  The radish (... p:vegetable    o:vegetable
+Test 06 fixed            The radish (... p:vegetable    o:vegetable
+Test 06 firstmatch       The radish (... p:vegetable    o:vegetable
+
+Calculate/Collate recall + precision
+
+Generating Confusion Matrices
+Key:
+p: predicted
+o: observed
+p+:predicted total
+o+: observed total
+
+random         o:vegetable    o:animal       o:mineral     
+p:vegetable               1               1               0  p+:vegetable :2
+p:animal                  1               0               1  p+:animal    :2
+p:mineral                 2               0               0  p+:mineral   :2
+              o+:vegetable:4   o+:animal  :1   o+:mineral :1 
+vegetable  Precision  0.25 Recall  0.50
+animal     Precision  0.00 Recall  0.00
+mineral    Precision  0.00 Recall  0.00
+Mean       Precision  0.08 Recall  0.17
+
+aggregateweight o:vegetable    o:animal       o:mineral     
+p:vegetable               2               0               0  p+:vegetable :2
+p:animal                  0               2               0  p+:animal    :2
+p:mineral                 1               0               1  p+:mineral   :2
+              o+:vegetable:3   o+:animal  :2   o+:mineral :1 
+vegetable  Precision  0.67 Recall  1.00
+animal     Precision  1.00 Recall  1.00
+mineral    Precision  1.00 Recall  0.50
+Mean       Precision  0.89 Recall  0.83
+
+fixed          o:vegetable    o:animal       o:mineral     
+p:vegetable               2               0               0  p+:vegetable :2
+p:animal                  2               0               0  p+:animal    :2
+p:mineral                 2               0               0  p+:mineral   :2
+              o+:vegetable:6   o+:animal  :0   o+:mineral :0 
+vegetable  Precision  0.33 Recall  1.00
+animal     Precision  1.00 Recall  0.00
+mineral    Precision  1.00 Recall  0.00
+Mean       Precision  0.78 Recall  0.33
+
+firstmatch     o:vegetable    o:animal       o:mineral     
+p:vegetable               1               0               1  p+:vegetable :2
+p:animal                  0               2               0  p+:animal    :2
+p:mineral                 1               0               1  p+:mineral   :2
+              o+:vegetable:2   o+:animal  :2   o+:mineral :2 
+vegetable  Precision  0.50 Recall  0.50
+animal     Precision  1.00 Recall  1.00
+mineral    Precision  0.50 Recall  0.50
+Mean       Precision  0.67 Recall  0.67
 Estimating Value by mode
-	Mode random              estimated Value   -163 minutes/operator/day
-	Mode aggregateweight     estimated Value     25 minutes/operator/day
-	Mode fixed               estimated Value   -116 minutes/operator/day
-	Mode firstmatch          estimated Value    -22 minutes/operator/day
+Mode random              estimated Value   -110 minutes/operator/day
+Mode aggregateweight     estimated Value     50 minutes/operator/day
+Mode fixed               estimated Value    -70 minutes/operator/day
+Mode firstmatch          estimated Value     10 minutes/operator/day

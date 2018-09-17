@@ -9,16 +9,16 @@ import abc
 
 ######
 # file:    recall_precision_comparison.py
-# date:    20170808
+# date:    20170917
 # status:  draft
-# version: 0.1
-# authors: djptek
+# version: 0.2
+# authors: djptek,djp-search
 # purpose: calculate recall/precision for classification method 01
 ######
 
-# set to your elastic host (in this case VM)
+# set to your elastic host (default local docker instance)
 es = Elasticsearch([
-    {'host': '192.168.56.101'}
+    {'host': '0.0.0.0'}
 ])
 
 training_index = 'training'
@@ -84,29 +84,6 @@ class AggregateWeightClassifier(AbstractClassifier):
         else:
             return no_tag
 
-# Ignore top hit then Sum weights on per tag basis and return highest
-
-class SkipFirstWeightClassifier(AbstractClassifier):
-
-    @staticmethod
-    def tag(search_body):
-        res = es.search(index=training_index, body=search_body)
-        if int(res['hits']['total']) > 0:
-            tag_scores = dict()
-            # slice hits 2-6 ignoring best match
-            # so that results deviate from firstmatch
-            for hit in res['hits']['hits'][1:5]:
-                if hit['_source']['doc']['tag'] not in tag_scores.keys():
-                    tag_scores[hit['_source']['doc']['tag']] = hit['_score']
-                else:
-                    tag_scores[hit['_source']['doc']['tag']] += hit['_score']
-            return sorted(
-                tag_scores,
-                key=tag_scores.__getitem__,
-                reverse=True)[0]
-        else:
-            return no_tag
-
 # Purely Random Classification
 
 
@@ -131,10 +108,9 @@ class FixedClassifier(AbstractClassifier):
 class ClassifierFactory(object):
     classifier_modes = {
         'firstmatch': FirstMatchClassifier,
-        #'aggregateweight': AggregateWeightClassifier,
-        'skipfirstweight': SkipFirstWeightClassifier,
-        #'fixed': FixedClassifier,
-        #'random': RandomClassifier,
+        'aggregateweight': AggregateWeightClassifier,
+        'fixed': FixedClassifier,
+        'random': RandomClassifier
     }
 
     @staticmethod
