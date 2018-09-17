@@ -4,16 +4,16 @@ from json import loads
 
 ######
 # file:    load_training.py
-# date:    20170808 
+# date:    20180917 
 # status:  draft
-# version: 0.1
+# version: 0.2
 # authors: djptek
 # purpose: index multiple documents to elastic via python api
 ######
  
-# set to your elastic host (in this case VM)
+# set to your elastic host (default the docker instance)
 es = Elasticsearch([
-    {'host': '192.168.56.101'}
+    {'host': '0.0.0.0'}
 ])
 
 training_index = 'training'
@@ -21,9 +21,23 @@ training_type = 'example'
 training_datafile = '../data/training_docs.json'
 
 # delete ALL indexes to ensure starting afresh
-res = es.indices.delete(index="_all", ignore=[400, 404])
+res = es.indices.delete(
+    index="_all", 
+    ignore=[400, 404])
  
-res = es.indices.create(index=training_index, ignore=[400, 404])
+res = es.indices.create(
+    index=training_index, 
+    ignore=[400, 404], 
+    body="""
+{
+    "settings" : {
+        "index" : {
+            "number_of_shards" : 1, 
+            "number_of_replicas" : 0 
+        }
+    }
+}
+""")
 
 # check delete OK likewise accept if Index did not exist
 if ('acknowledged' in res.keys() or 

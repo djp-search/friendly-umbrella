@@ -11,6 +11,9 @@ Content:
 ./data:
 training_docs.json
 
+./docker:
+docker-compose.yml
+
 ./expected_output:
 output_test_01-06.txt
 
@@ -22,6 +25,11 @@ load_training.py
 
 ./tests:
 recall_precision_comparison.py
+
+To spin up a single-node Elasticsearch cluster on 0.0.0.0:9200
+
+$ cd ./docker
+$ docker-compose up
 
 To load the training dataset:
 
