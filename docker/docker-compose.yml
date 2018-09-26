@@ -1,7 +1,7 @@
 version: '2.2'
 services:
   friendly-umbrella:
-    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.4.0
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.4.1
     container_name: server1
     environment:
       - cluster.name=friendly-umbrella
@@ -15,6 +15,15 @@ services:
         hard: -1
     ports:
       - 9200:9200
+    networks:
+      - es_net
+  kibana:
+    image: docker.elastic.co/kibana/kibana-oss:6.4.1
+    container_name: server2
+    environment:
+      - "ELASTICSEARCH_URL=http://server1:9200"
+    ports:
+      - 5601:5601
     networks:
       - es_net
 
