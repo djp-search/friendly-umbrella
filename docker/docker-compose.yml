@@ -7,9 +7,10 @@ services:
       - cluster.name=friendly-umbrella
       - node.name=friendly-umbrella
       - bootstrap.memory_lock=true
+      - discovery.zen.minimum_master_nodes=1
+      - node.ingest=true
+      - script.painless.regex.enabled=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "discovery.zen.minimum_master_nodes=1"
-      - "script.painless.regex.enabled=true"
     ulimits:
       memlock:
         soft: -1
